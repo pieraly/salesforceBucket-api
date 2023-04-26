@@ -31,6 +31,7 @@ modules::myFunc::getlabel(vars.subType)
 			</ee:message>
 		</ee:transform>
 		<flow-ref doc:name="add_label_flow" doc:id="4c520f2f-1056-49b6-a6b9-b1785325a398" name="add_label_flow"/>
+		<logger level="INFO" doc:name="Logger" doc:id="aa10e03c-6539-41df-a346-a11887a6a005" />
 	</flow>
 	<sub-flow name="add_label_flow" doc:id="f43ff435-3e20-4e92-b7fd-c44545fb7c52" >
 		<set-payload value='#[[&#10;{&#10;"amount":-76.9,&#10;"type":"CreditPurchase",&#10;"subType":"ExpiringCredits"&#10;},&#10;{&#10;"amount":-0.36,&#10;"type":"CreditPurchase",&#10;"subType":"WithdrawingMoney"&#10;},&#10;{&#10;"amount":-568.23,&#10;"type":"CreditPurchase",&#10;"subType":"RepoDocWithCanceledProject"&#10;}&#10;]]' doc:name="LIST" doc:id="e3438a19-45c6-44d1-9fb4-011533b35c78" />
