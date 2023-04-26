@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:crypto="http://www.mulesoft.org/schema/mule/crypto"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/crypto http://www.mulesoft.org/schema/mule/crypto/current/mule-crypto.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="6fc4dc51-48be-4eed-8eb2-48ed2259ed89" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="f09285ff-a1aa-4e97-b7e6-bab1f19fccae" />
+	<flow name="salesforce-bucket-apiFlow" doc:id="cec24f17-16ab-45fc-8a36-b790edfb0cb9" >
+		<http:listener doc:name="Listener" doc:id="619ac0f4-ba25-4e4b-a954-59a3de5fc020" config-ref="HTTP_Listener_config" path="/getLabel"/>
+		<set-variable value='#[[&#10;{&#10;"label":"Accrual",&#10;"rangeUpperBound":null,&#10;"sourceDimensionValues":[&#10;"EarningFromAProject",&#10;"ExpiringCredits",&#10;"Rollback"&#10;]&#10;},&#10;{&#10;"label":"Sales",&#10;"rangeUpperBound":null,&#10;"sourceDimensionValues":[&#10;"BundleRefund",&#10;"BuyingACreditBundle"&#10;]&#10;},&#10;{&#10;"label":"Accrual and Sales",&#10;"rangeUpperBound":null,&#10;"sourceDimensionValues":[&#10;"SubscriptionPrepayment",&#10;"InHouseServiceFee",&#10;"TechSubscriptionFee"&#10;]&#10;},&#10;{&#10;"label":"Other",&#10;"rangeUpperBound":null,&#10;"sourceDimensionValues":[&#10;"AdminLevy",&#10;"AdminLoan",&#10;"AdminProjectLevy",&#10;"AdminProjectRefund",&#10;"AdminRefund",&#10;"BundleCancellation",&#10;"CancelingAProject",&#10;"CompletingAJob",&#10;"EarningFromReferredAuthor",&#10;"EarningFromReferredClient",&#10;"ExpiringWallet",&#10;"GivenByManager",&#10;"GivenToSubordinate",&#10;"LaunchingAProject",&#10;"ModeratingAnApplication",&#10;"RedeemingAPromoCode",&#10;"RepoDocWithCanceledProject",&#10;"WithdrawingMoney"&#10;]&#10;}&#10;]]' doc:name="bucket" doc:id="63adab32-3652-4949-938f-46c444b86b21" variableName="bucket" />
+		<set-variable value='#["InHouseServiceFee"]' doc:name="subType" doc:id="9e457fa4-b07a-4912-add4-94757ec159d3" variableName="subType"/>
+		<ee:transform doc:name="filter by subType" doc:id="8869a5f0-3702-49d9-b9e2-9eace68a4884">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+import modules::myFunc
+
+---
+
+modules::myFunc::getlabel(vars.subType)
+
+
+
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="add_label_flow" doc:id="4c520f2f-1056-49b6-a6b9-b1785325a398" name="add_label_flow"/>
+	</flow>
+	<sub-flow name="add_label_flow" doc:id="f43ff435-3e20-4e92-b7fd-c44545fb7c52" >
+		<set-payload value='#[[&#10;{&#10;"amount":-76.9,&#10;"type":"CreditPurchase",&#10;"subType":"ExpiringCredits"&#10;},&#10;{&#10;"amount":-0.36,&#10;"type":"CreditPurchase",&#10;"subType":"WithdrawingMoney"&#10;},&#10;{&#10;"amount":-568.23,&#10;"type":"CreditPurchase",&#10;"subType":"RepoDocWithCanceledProject"&#10;}&#10;]]' doc:name="LIST" doc:id="e3438a19-45c6-44d1-9fb4-011533b35c78" />
+		<ee:transform doc:name="add Label" doc:id="4330448d-b88e-45d2-8937-aacc8e7e9194">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+import modules::myFunc
+
+ 
+        
+---
+payload map ((item, index) -> item ++ 
+{
+    "label": modules::myFunc::getlabel(item.subType) reduce ((item, accumulator) -> item )
+} )]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="sum amount" doc:id="3017c00b-0085-41f7-9c52-10ad289e4c85" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv
+---
+payload map ((item, index) -> { "type": item."type", "subType": item.subType, "amount": item.amount } ) ++  [{
+    
+   "type" : "","subType" : "", "amount": - (-sum(payload.amount)), "label": ""
+    
+} ]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:write doc:id="42330375-d5f3-4186-990e-280f6fe6a623" config-ref="File_Config" path="C:\Users\pieraly-mourade.step\AnypointStudio\studio-workspace\salesforce-bucket-api\src\main\resources\SUM_amount.csv"/>
+		<logger level="INFO" doc:name="Fin" doc:id="00efa8ba-8c31-4f58-9917-941a668abe28" message="transformation fini" />
+	</sub-flow>
+</mule>

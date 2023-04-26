@@ -1,0 +1,5 @@
+%dw 2.0
+
+type auto_f43ff435_3e20_4e92_b7fd_c44545fb7c52_Input_Variables_bucket = Array<{|  label: String,   rangeUpperBound: Null,   sourceDimensionValues: Array<"EarningFromAProject" | "ExpiringCredits" | "Rollback">
+|}>
+
