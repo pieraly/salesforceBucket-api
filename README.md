@@ -2,7 +2,7 @@
 Mulesoft api with anypoint studio
 
 
-                                                            Salesforce Bucket
+                                                    Salesforce Bucket
 
 You must export a financial report to a filesystem for a reporting software that will produce dashboards for the marketing department.
 Reporting software expects a CSV.
